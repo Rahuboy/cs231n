@@ -54,6 +54,10 @@ class TwoLayerNet(object):
         # weights and biases using the keys 'W2' and 'b2'.                         #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        self.params['W1'] = np.random.randn(input_dim, hidden_dim)*weight_scale
+        self.params['b1'] = np.zeros(hidden_dim)
+        self.params['W2'] = np.random.randn(hidden_dim, num_classes)*weight_scale
+        self.params['b2'] = np.zeros(num_classes)
 
         pass
 
@@ -88,6 +92,9 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        intermediate, cache1 = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+        scores, cache2 = affine_forward(intermediate, self.params['W2'], self.params['b2'])
+
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -111,6 +118,17 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        loss, softmax_grad = softmax_loss(scores, y)
+        loss += 0.5*self.reg*np.sum(self.params['W1']**2) + 0.5*self.reg*np.sum(self.params['W2']**2)
+
+        affine_grad, affine_grad_w, affine_grad_b = affine_backward(softmax_grad, cache2)
+        grads['W2'] = affine_grad_w + self.reg*self.params['W2']
+        grads['b2'] = affine_grad_b
+
+        relu_grad, relu_grad_w, relu_grad_b = affine_relu_backward(affine_grad, cache1)
+        grads['W1'] = relu_grad_w + self.reg*self.params['W1']
+        grads['b1'] = relu_grad_b
+
 
         pass
 

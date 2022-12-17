@@ -27,6 +27,9 @@ def affine_forward(x, w, b):
     # will need to reshape the input into rows.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x2 = x.reshape(x.shape[0],-1)
+    out = x2 @ w
+    out += b.T
 
     pass
 
@@ -60,6 +63,10 @@ def affine_backward(dout, cache):
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x2 = x.reshape(x.shape[0], -1)
+    dx = (dout @ w.T).reshape(x.shape)
+    dw = x2.T @ dout
+    db = np.sum(dout, axis=0)
 
     pass
 
@@ -87,6 +94,8 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    out = np.maximum(0, x)
+
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -113,6 +122,9 @@ def relu_backward(dout, cache):
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+    dx = dout
+    dx[x < 0] = 0
 
     pass
 
@@ -773,6 +785,19 @@ def svm_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    xcoord = np.arange(x.shape[0])
+    margins = np.maximum(0, (x.T-x[xcoord,y]).T + 1)
+    margins[xcoord,y] = 0
+    indicator = (margins > 0).astype(float)
+    indicator_sum = np.sum(indicator, axis = 1)
+    indicator[xcoord,y] -= indicator_sum[xcoord]
+
+    loss = np.sum(margins) / x.shape[0]
+    dx = indicator / x.shape[0]
+
+
+
+
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -797,11 +822,27 @@ def softmax_loss(x, y):
     - dx: Gradient of the loss with respect to x
     """
     loss, dx = None, None
-
+    loss = 0.0
     ###########################################################################
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+
+
+    scores = x
+    exp_scores = np.exp(scores)
+    cumulative_exp_scores = np.sum(exp_scores, axis = 1)
+    softmax = (exp_scores.T / cumulative_exp_scores).T
+    class_probability = softmax[np.arange(x.shape[0]), y]
+    loss += np.sum(-1*np.log(class_probability))
+    softmax[np.arange(x.shape[0]), y] -= 1
+
+    loss /= x.shape[0]
+    dx = softmax / x.shape[0]
+
+   
+
 
     pass
 
