@@ -243,6 +243,21 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        # forward pass
+        means = np.mean(x, axis=0)
+        centred = (x-means)
+        _vars = np.mean(centred**2, axis=0)
+        stds = np.sqrt(_vars + eps)
+        normalized = centred / stds
+        out = gamma*normalized + beta
+
+        # running averages
+        running_mean = momentum*running_mean + (1-momentum)*means
+        running_var = momentum*running_var + (1-momentum)*_vars
+
+        # cache all intermediate nodes of forward pass
+        cache = (x, means, centred, _vars, stds, normalized, gamma, beta)
+
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -257,7 +272,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        out = gamma*((x - running_mean) / np.sqrt(running_var + eps)) + beta
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -298,6 +313,23 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, D = dout.shape
+
+    x, means, centred, _vars, stds, normalized, gamma, beta = cache
+    dx, dmeans, dcentred, d_vars, dstds, dnormalized = [0,]*6
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(normalized*dout, axis=0)
+
+    dnormalized = gamma*dout
+    dcentred += dnormalized/stds
+    dstds = -centred*dnormalized/stds**2
+    d_vars = 1/(2*np.sqrt(_vars))*dstds
+    dcentred += 2*centred*np.mean(d_vars, axis=0)
+
+    dx += dcentred
+    dmeans = -dcentred
+    dx += np.mean(dmeans, axis=0)
 
     pass
 
