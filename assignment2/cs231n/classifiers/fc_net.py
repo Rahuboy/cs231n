@@ -76,13 +76,20 @@ class FullyConnectedNet(object):
 
         self.params['W1'] = np.random.randn(input_dim, hidden_dims[0])*weight_scale
         self.params['b1'] = np.zeros(hidden_dims[0])
+        if self.normalization == 'batchnorm':
+          self.params['gamma1'] = np.ones(hidden_dims[0])
+          self.params['beta1'] = np.zeros(hidden_dims[0])
 
         for i in range(1, self.num_layers - 1):
           self.params['W'+str(i+1)] = np.random.randn(hidden_dims[i-1], hidden_dims[i])*weight_scale
           self.params['b'+str(i+1)] = np.zeros(hidden_dims[i])
+          if self.normalization == 'batchnorm':
+            self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
+            self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
 
         self.params['W' + str(self.num_layers)] = np.random.randn(hidden_dims[self.num_layers-2], num_classes)*weight_scale
         self.params['b' + str(self.num_layers)] = np.zeros(num_classes)
+
         
 
 
@@ -162,17 +169,31 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         cache = {}
-
-        out, cache[1] = affine_relu_forward(X, self.params['W1'], self.params['b1'])
-        for i in range(self.num_layers - 2):
-          out, cache[i+2] = affine_relu_forward(out, self.params['W'+str(i+2)], self.params['b'+str(i+2)])
-
-        scores, cache[self.num_layers] = affine_forward(out, self.params['W'+str(self.num_layers)], self.params['b'+str(self.num_layers)])
-
+        if self.normalization is None:
+          out, cache[1] = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+          for i in range(self.num_layers - 2):
+            out, cache[i+2] = affine_relu_forward(out, 
+                                                  self.params['W'+str(i+2)], 
+                                                  self.params['b'+str(i+2)])     
         
+        elif self.normalization == 'batchnorm':
+          out, cache[1] = affine_bn_relu_forward(X, 
+                                                 self.params['W1'], 
+                                                 self.params['b1'], 
+                                                 self.params['gamma1'], 
+                                                 self.params['beta1'], 
+                                                 self.bn_params[0])
+          for i in range(self.num_layers - 2):
+            out, cache[i+2] = affine_bn_relu_forward(out,
+                                                     self.params['W'+str(i+2)],
+                                                     self.params['b'+str(i+2)],
+                                                     self.params['gamma'+str(i+2)], 
+                                                     self.params['beta'+str(i+2)], 
+                                                     self.bn_params[i+1])                                     
 
-
-
+        scores, cache[self.num_layers] = affine_forward(out, 
+                                                          self.params['W'+str(self.num_layers)], 
+                                                          self.params['b'+str(self.num_layers)])
 
         pass
 
@@ -209,11 +230,20 @@ class FullyConnectedNet(object):
         grads['W' + str(self.num_layers)] = grad_w + self.reg*self.params['W' + str(self.num_layers)]
         grads['b' + str(self.num_layers)] = grad_b
 
-        for i in range(self.num_layers - 1, 0, -1):
-          grad, grad_w, grad_b = affine_relu_backward(grad, cache[i])
-          grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
-          grads['b' + str(i)] = grad_b
 
+        if self.normalization is None: 
+          for i in range(self.num_layers - 1, 0, -1):
+            grad, grad_w, grad_b = affine_relu_backward(grad, cache[i])
+            grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
+            grads['b' + str(i)] = grad_b
+
+        elif self.normalization == 'batchnorm':
+          for i in range(self.num_layers - 1, 0, -1):
+            grad, grad_w, grad_b, grad_gamma, grad_beta = affine_bn_relu_backward(grad, cache[i])
+            grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
+            grads['b' + str(i)] = grad_b
+            grads['gamma' + str(i)] = grad_gamma
+            grads['beta' + str(i)] = grad_beta
 
 
         pass

@@ -324,7 +324,7 @@ def batchnorm_backward(dout, cache):
     dnormalized = gamma*dout
     dcentred += dnormalized/stds
     dstds = -centred*dnormalized/stds**2
-    d_vars = 1/(2*np.sqrt(_vars))*dstds
+    d_vars = 1/(2*stds)*dstds
     dcentred += 2*centred*np.mean(d_vars, axis=0)
 
     dx += dcentred
@@ -364,6 +364,15 @@ def batchnorm_backward_alt(dout, cache):
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, D = dout.shape
+
+    x, means, centred, _vars, stds, nrm, gamma, beta = cache
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(nrm*dout, axis=0)
+
+    # 79 characters
+    dx = (np.eye(N) - 1/N)@(gamma*dout/stds) -(gamma/stds)*nrm*np.mean(nrm*dout, 0)
 
     pass
 
