@@ -418,6 +418,13 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    # ik i can use the hint, but wanted cleaner code than I wrote for batchnorm :)
+    mu = np.mean(x, axis=1)
+    std = np.sqrt(np.var(x, axis=1) + eps)
+    x_hat = ((x.T - mu) / std).T
+    out = gamma * x_hat + beta
+
+    cache = (mu, std, x_hat, gamma, beta)
 
     pass
 
@@ -452,6 +459,20 @@ def layernorm_backward(dout, cache):
     # still apply!                                                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    # some backprop practise instead of hint lel
+    N, D = dout.shape
+
+    mu, std, x_hat, gamma, beta = cache
+    dx, dx_hat = 0, 0
+
+    dgamma = np.sum(dout * x_hat, axis=0)
+    dbeta = np.sum(dout, axis=0)
+    dx_hat = gamma * dout
+
+    dx += (dx_hat.T / std).T
+    dmu = np.sum((-dx_hat.T / std), axis=0)
+    dstd = np.sum(-(x_hat.T / std).T * dx_hat, axis=1) 
+    dx = (dx.T + (dmu + dstd * x_hat.T) / D).T
 
     pass
 
