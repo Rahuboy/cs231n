@@ -57,6 +57,39 @@ def affine_bn_relu_backward(dout, cache):
 
 pass
 
+
+def affine_ln_relu_forward(x, w, b, gamma, beta, bn_param):
+    """Convenience layer that performs an affine transform, a layer normalization, and a ReLU.
+
+    Inputs:
+    - x: Input to the affine layer
+    - w, b: Weights for the affine layer
+
+    Returns a tuple of:
+    - out: Output from the ReLU
+    - cache: Object to give to the backward pass
+    """
+    a, fc_cache = affine_forward(x, w, b)
+    b, ln_cache = layernorm_forward(a, gamma, beta, bn_param)
+    out, relu_cache = relu_forward(b)
+    cache = (fc_cache, ln_cache, relu_cache)
+    return out, cache
+    
+
+def affine_ln_relu_backward(dout, cache):
+    """Backward pass for the affine-ln-relu convenience layer.
+    """
+    fc_cache, ln_cache, relu_cache = cache
+    dout = relu_backward(dout, relu_cache)
+    dout, dgamma, dbeta = layernorm_backward(dout, ln_cache)
+    dx, dw, db = affine_backward(dout, fc_cache)
+    return dx, dw, db, dgamma, dbeta
+
+pass
+
+
+
+
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 def conv_relu_forward(x, w, b, conv_param):
