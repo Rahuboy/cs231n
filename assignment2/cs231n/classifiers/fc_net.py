@@ -169,48 +169,13 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         cache = {}
-        if self.normalization is None:
-          out, cache[1] = affine_relu_forward(X, self.params['W1'], self.params['b1'])
-          for i in range(self.num_layers - 2):
-            out, cache[i+2] = affine_relu_forward(out, 
-                                                  self.params['W'+str(i+2)], 
-                                                  self.params['b'+str(i+2)])     
-        
-        elif self.normalization == 'batchnorm':
-          out, cache[1] = affine_bn_relu_forward(X, 
-                                                 self.params['W1'], 
-                                                 self.params['b1'], 
-                                                 self.params['gamma1'], 
-                                                 self.params['beta1'], 
-                                                 self.bn_params[0])
-          for i in range(self.num_layers - 2):
-            out, cache[i+2] = affine_bn_relu_forward(out,
-                                                     self.params['W'+str(i+2)],
-                                                     self.params['b'+str(i+2)],
-                                                     self.params['gamma'+str(i+2)], 
-                                                     self.params['beta'+str(i+2)], 
-                                                     self.bn_params[i+1])                                     
-        elif self.normalization == 'layernorm':
-          out, cache[1] = affine_ln_relu_forward(X, 
-                                                 self.params['W1'], 
-                                                 self.params['b1'], 
-                                                 self.params['gamma1'], 
-                                                 self.params['beta1'], 
-                                                 self.bn_params[0])
-          for i in range(self.num_layers - 2):
-            out, cache[i+2] = affine_ln_relu_forward(out,
-                                                     self.params['W'+str(i+2)],
-                                                     self.params['b'+str(i+2)],
-                                                     self.params['gamma'+str(i+2)], 
-                                                     self.params['beta'+str(i+2)], 
-                                                     self.bn_params[i+1])   
 
+        out, cache[1] = gen_affine_forward(X, self.params, 1, self.normalization, self.bn_params, self.use_dropout, self.dropout_param)
 
+        for i in range(self.num_layers - 2):
+          out, cache[i+2] = gen_affine_forward(out, self.params, i+2, self.normalization, self.bn_params, self.use_dropout, self.dropout_param)
 
-
-        scores, cache[self.num_layers] = affine_forward(out, 
-                                                          self.params['W'+str(self.num_layers)], 
-                                                          self.params['b'+str(self.num_layers)])
+        scores, cache[self.num_layers] = gen_affine_forward(out, self.params, self.num_layers, only_affine=True)
 
         pass
 
@@ -242,33 +207,20 @@ class FullyConnectedNet(object):
         loss, softmax_grad = softmax_loss(scores, y)
         for i in range(self.num_layers):
           loss += 0.5*self.reg*np.sum(self.params['W' + str(i+1)]**2)
-        
-        grad, grad_w, grad_b = affine_backward(softmax_grad, cache[self.num_layers])
+
+        grad, grad_w, grad_b, grad_gamma, grad_beta = gen_affine_backward(softmax_grad, cache, self.num_layers, 
+                                                                          only_affine=True)
         grads['W' + str(self.num_layers)] = grad_w + self.reg*self.params['W' + str(self.num_layers)]
         grads['b' + str(self.num_layers)] = grad_b
 
-
-        if self.normalization is None: 
-          for i in range(self.num_layers - 1, 0, -1):
-            grad, grad_w, grad_b = affine_relu_backward(grad, cache[i])
+        for i in range(self.num_layers - 1, 0, -1):
+            grad, grad_w, grad_b, grad_gamma, grad_beta = gen_affine_backward(grad, cache, i, self.normalization, 
+                                                                              self.use_dropout)
             grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
             grads['b' + str(i)] = grad_b
-
-        elif self.normalization == 'batchnorm':
-          for i in range(self.num_layers - 1, 0, -1):
-            grad, grad_w, grad_b, grad_gamma, grad_beta = affine_bn_relu_backward(grad, cache[i])
-            grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
-            grads['b' + str(i)] = grad_b
-            grads['gamma' + str(i)] = grad_gamma
-            grads['beta' + str(i)] = grad_beta
-
-        elif self.normalization == 'layernorm':
-          for i in range(self.num_layers - 1, 0, -1):
-            grad, grad_w, grad_b, grad_gamma, grad_beta = affine_ln_relu_backward(grad, cache[i])
-            grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
-            grads['b' + str(i)] = grad_b
-            grads['gamma' + str(i)] = grad_gamma
-            grads['beta' + str(i)] = grad_beta
+            if self.normalization is not None:
+              grads['gamma' + str(i)] = grad_gamma
+              grads['beta' + str(i)] = grad_beta
 
         pass
 

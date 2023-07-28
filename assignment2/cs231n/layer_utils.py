@@ -88,6 +88,69 @@ def affine_ln_relu_backward(dout, cache):
 pass
 
 
+def gen_affine_forward(X, params, idx, normalization=None, bn_params=None, use_dropout=False, dropout_param=None, only_affine=False):
+  """General forward pass for an affine block
+  """
+  if only_affine:
+    out, cache = affine_forward(X, params['W' + str(idx)], params['b' + str(idx)])
+    return out, cache
+
+  if normalization is None:
+    out, cache_1 = affine_relu_forward(X, params['W' + str(idx)], params['b' + str(idx)])
+
+  elif normalization == 'batchnorm':
+    out, cache_1 = affine_bn_relu_forward(X, 
+                                          params['W' + str(idx)], 
+                                          params['b' + str(idx)], 
+                                          params['gamma' + str(idx)], 
+                                          params['beta' + str(idx)], 
+                                          bn_params[idx - 1])
+
+  elif normalization == 'layernorm':
+    out, cache_1 = affine_ln_relu_forward(X, 
+                                          params['W' + str(idx)], 
+                                          params['b' + str(idx)], 
+                                          params['gamma' + str(idx)], 
+                                          params['beta' + str(idx)], 
+                                          bn_params[idx - 1])
+
+  if use_dropout:
+    out, cache_2 = dropout_forward(out, dropout_param)
+    return out, (cache_1, cache_2)
+
+  else:
+    return out, cache_1
+
+
+def gen_affine_backward(dout, cache, idx, normalization=None, use_dropout=False, only_affine=False):
+  """General backward pass for an affine block
+  """
+
+  grad, grad_w, grad_b, grad_gamma, grad_beta = [None]*5
+
+  
+
+  if use_dropout:
+    cache_1, cache_2 = cache[idx]
+    dout = dropout_backward(dout, cache_2)
+  else:
+    cache_1 = cache[idx]
+
+  if only_affine:
+    grad, grad_w, grad_b = affine_backward(dout, cache_1)
+    return (grad, grad_w, grad_b, grad_gamma, grad_beta)
+  
+  if normalization is None:
+    grad, grad_w, grad_b = affine_relu_backward(dout, cache_1)
+  
+  elif normalization == 'batchnorm':
+    grad, grad_w, grad_b, grad_gamma, grad_beta = affine_bn_relu_backward(dout, cache_1)
+  
+  elif normalization == 'layernorm':
+    grad, grad_w, grad_b, grad_gamma, grad_beta = affine_ln_relu_backward(dout, cache_1)
+
+  return (grad, grad_w, grad_b, grad_gamma, grad_beta)
+
 
 
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****

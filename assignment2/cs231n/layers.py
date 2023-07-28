@@ -153,7 +153,7 @@ def softmax_loss(x, y):
 
     loss, dx = 0.0, 0.0
     scores = x
-    exp_scores = np.exp(scores)
+    exp_scores = np.exp(scores - np.max(scores, axis=1, keepdims=True)) # (https://stackoverflow.com/questions/23665599/numerically-stable-implementation)
     cumulative_exp_scores = np.sum(exp_scores, axis = 1)
     softmax = (exp_scores.T / cumulative_exp_scores).T
     class_probability = softmax[np.arange(x.shape[0]), y]
@@ -562,7 +562,7 @@ def dropout_backward(dout, cache):
         # TODO: Implement training phase backward pass for inverted dropout   #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        dx = (dout * mask)  # mask already has the factor of 1/p
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
