@@ -63,6 +63,22 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        self.params['W1'] = np.random.randn(num_filters, input_dim[0], filter_size, filter_size)*weight_scale
+        self.params['b1'] = np.zeros(num_filters)
+        # if self.normalization == 'batchnorm' or self.normalization == 'layernorm':
+        #   self.params['gamma1'] = np.ones(hidden_dims[0])
+        #   self.params['beta1'] = np.zeros(hidden_dims[0])
+
+        extent = int ((input_dim[1] * input_dim[2]) / 4)
+        self.params['W2'] = np.random.randn(num_filters * extent, hidden_dim)*weight_scale
+        self.params['b2'] = np.zeros(hidden_dim)
+        # if self.normalization == 'batchnorm' or self.normalization == 'layernorm':
+        #   self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
+        #   self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
+
+        self.params['W3'] = np.random.randn(hidden_dim, num_classes)*weight_scale
+        self.params['b3'] = np.zeros(num_classes)
+
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -101,6 +117,20 @@ class ThreeLayerConvNet(object):
         # cs231n/layer_utils.py in your implementation (already imported).         #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        out, cache1 = conv_relu_pool_forward(X, 
+                                             self.params['W1'],
+                                             self.params['b1'],
+                                             conv_param, 
+                                             pool_param)
+        conv_shape = out.shape
+
+        out, cache2 = affine_relu_forward(out.reshape(X.shape[0], -1),
+                                          self.params['W2'],
+                                          self.params['b2'])
+
+        scores, cache3 = affine_forward(out, 
+                                     self.params['W3'],
+                                     self.params['b3'])
 
         pass
 
@@ -124,6 +154,28 @@ class ThreeLayerConvNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+        loss, softmax_grad = softmax_loss(scores, y)
+        for i in range(3):
+          loss += 0.5*self.reg*np.sum(self.params['W' + str(i+1)]**2)
+
+        grad, grad_w, grads['b3'] = affine_backward(softmax_grad, cache3)
+        grads['W3'] = grad_w + self.reg*self.params['W3']
+
+        grad, grad_w, grads['b2'] = affine_relu_backward(grad, cache2)
+        grads['W2'] = grad_w + self.reg*self.params['W2']
+
+        grad, grad_w, grads['b1'] = conv_relu_pool_backward(grad.reshape(conv_shape), cache1)
+        grads['W1'] = grad_w + self.reg*self.params['W1']
+
+        # for i in range(self.num_layers - 1, 0, -1):
+        #     grad, grad_w, grad_b, grad_gamma, grad_beta = gen_affine_backward(grad, cache, i, self.normalization, 
+        #                                                                       self.use_dropout)
+        #     grads['W' + str(i)] = grad_w + self.reg*self.params['W' + str(i)]
+        #     grads['b' + str(i)] = grad_b
+        #     if self.normalization is not None:
+        #       grads['gamma' + str(i)] = grad_gamma
+        #       grads['beta' + str(i)] = grad_beta
 
         pass
 
