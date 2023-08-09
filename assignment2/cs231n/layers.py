@@ -872,7 +872,12 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # and layer normalization!                                                #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N, C, H, W = x.shape
+    D = int((C / G) * H * W)
+    x_g = x.reshape(N*G, -1)
+    out, ln_cache = layernorm_forward(x_g, np.ones(D), np.zeros(D), gn_param)
+    out, cache = out.reshape(*x.shape) * gamma + beta, (ln_cache, (out.reshape(*x.shape), gamma, G))
+  
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -901,6 +906,14 @@ def spatial_groupnorm_backward(dout, cache):
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    ln_cache, sgn_cache = cache
+    N, C, H, W =  dout.shape
+    G = sgn_cache[-1]
+    dbeta = np.sum(dout, axis=(0, 2, 3), keepdims=True)
+    dgamma = np.sum(dout*sgn_cache[0], axis=(0, 2, 3), keepdims=True)
+    dout = (dout * sgn_cache[1]).reshape(N*G, -1)
+    dout, _, _ = layernorm_backward(dout, ln_cache)
+    dx = dout.reshape(N, C, H, W)
 
     pass
 
