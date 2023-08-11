@@ -5,7 +5,7 @@
 # Assignment 3 generated
 assignment3/cs231n/datasets/coco_captioning
 assignment3/cs231n/datasets/MNIST_data/
-assignment3/cs231n/datasets/imagenet_val_25.npz
+assignment3/cs231n/datasets/imagenet_val_25.npz*
 assignment3/data
 assignment3/pretrained_model
 assignment3/results

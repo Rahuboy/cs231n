@@ -37,7 +37,12 @@ class PositionalEncoding(nn.Module):
         # less than 5 lines of code.                                               #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        pe_1 = torch.arange(0, max_len).unsqueeze(0).repeat(embed_dim, 1).T
+        pe_2 = torch.pow(torch.full_like(pe, 10000),
+                        (-torch.arange(0, embed_dim, 2)/embed_dim)
+                        .repeat_interleave(2).repeat(max_len, 1))
+        pe = torch.cos(pe_1 * pe_2)
+        pe[:, :, 0::2] = torch.sin((pe_1 * pe_2))[:, :, 0::2]
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -69,7 +74,7 @@ class PositionalEncoding(nn.Module):
         # afterward. This should only take a few lines of code.                    #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        output = self.dropout(x + self.pe[:, :S, :D])
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -164,6 +169,16 @@ class MultiHeadAttention(nn.Module):
         #     function masked_fill may come in handy.                              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        H = self.n_head
+        query = self.query(query).reshape(N, S, H, E // H).permute(0, 2, 1, 3)
+        key = self.key(key).reshape(N, T, H, E // H).permute(0, 2, 3, 1)
+        value = self.value(value).reshape(N, T, H, E // H).permute(0, 2, 1, 3)
+
+        Y = query.matmul(key) / (E // H)**(0.5)
+        if attn_mask is not None:
+          Y = Y.masked_fill(attn_mask == 0, float('-inf'))
+
+        output = self.proj(self.attn_drop(F.softmax(Y, dim=-1)).matmul(value).permute(0, 2, 1, 3).reshape(N, S, E))
 
         pass
 
